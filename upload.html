@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Credit Card Statement Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .category {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+        }
+        .error {
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Credit Card Statement Analyzer</h1>
+        
+        <form id="uploadForm">
+            <input type="file" id="statementFile" accept=".txt" required>
+            <button type="submit">Analyze Statement</button>
+        </form>
+        
+        <div id="error" class="error"></div>
+        
+        <div id="results" class="results">
+            <div id="statementInfo"></div>
+            <div id="spendingAnalysis"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const fileField = document.getElementById('statementFile');
+            
+            formData.append('statement', fileField.files[0]);
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = error.message;
+            }
+        });
+        
+        function displayResults(data) {
+            const statementInfo = document.getElementById('statementInfo');
+            const spendingAnalysis = document.getElementById('spendingAnalysis');
+            
+            // Display statement info
+            statementInfo.innerHTML = `
+                <h2>Statement Information</h2>
+                <p>Statement Date: ${data.statement_info.statement_date}</p>
+                <p>Payment Due Date: ${data.statement_info.payment_due_date}</p>
+                <p>Total Dues: ₹${data.statement_info.total_dues.toLocaleString()}</p>
+            `;
+            
+            // Display analysis
+            let analysisHTML = `
+                <h2>Spending Analysis</h2>
+                <p>Total Transactions: ${data.analysis.transaction_count}</p>
+                <p>Total Reward Points: ${data.analysis.total_points}</p>
+                <p>Domestic Spend: ₹${data.analysis.domestic_spend.toLocaleString()}</p>
+                <p>International Spend: ₹${data.analysis.international_spend.toLocaleString()}</p>
+                
+                <h3>Category-wise Spending</h3>
+            `;
+            
+            for (const [category, stats] of Object.entries(data.analysis.category_spending)) {
+                analysisHTML += `
+                    <div class="category">
+                        <h4>${category}</h4>
+                        <p>Total Spent: ₹${stats.total.toLocaleString()}</p>
+                        <p>Number of Transactions: ${stats.count}</p>
+                        <p>Average Transaction: ₹${stats.average.toLocaleString()}</p>
+                    </div>
+                `;
+            }
+            
+            spendingAnalysis.innerHTML = analysisHTML;
+        }
+    </script>
+</body>
+</html>
