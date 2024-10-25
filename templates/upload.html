@@ -8,24 +8,50 @@
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            line-height: 1.6;
         }
         .container {
             background-color: #f5f5f5;
             padding: 20px;
             border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .results {
             margin-top: 20px;
         }
         .category {
             margin: 10px 0;
-            padding: 10px;
+            padding: 15px;
             background-color: white;
             border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         .error {
-            color: red;
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
             display: none;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .summary {
+            background-color: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -52,10 +78,13 @@
             
             const formData = new FormData();
             const fileField = document.getElementById('statementFile');
+            const errorDiv = document.getElementById('error');
+            const resultsDiv = document.getElementById('results');
             
             formData.append('statement', fileField.files[0]);
             
             try {
+                errorDiv.style.display = 'none';
                 const response = await fetch('/analyze', {
                     method: 'POST',
                     body: formData
@@ -66,11 +95,12 @@
                 if (response.ok) {
                     displayResults(data);
                 } else {
-                    throw new Error(data.error);
+                    throw new Error(data.error || 'An error occurred during analysis');
                 }
             } catch (error) {
-                document.getElementById('error').style.display = 'block';
-                document.getElementById('error').textContent = error.message;
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = error.message;
+                resultsDiv.innerHTML = '';
             }
         });
         
@@ -80,30 +110,34 @@
             
             // Display statement info
             statementInfo.innerHTML = `
-                <h2>Statement Information</h2>
-                <p>Statement Date: ${data.statement_info.statement_date}</p>
-                <p>Payment Due Date: ${data.statement_info.payment_due_date}</p>
-                <p>Total Dues: ₹${data.statement_info.total_dues.toLocaleString()}</p>
+                <div class="summary">
+                    <h2>Statement Information</h2>
+                    <p>Statement Date: ${data.statement_info.statement_date}</p>
+                    <p>Payment Due Date: ${data.statement_info.payment_due_date}</p>
+                    <p>Total Dues: ₹${data.statement_info.total_dues.toLocaleString('en-IN', {maximumFractionDigits: 2})}</p>
+                </div>
             `;
             
             // Display analysis
             let analysisHTML = `
-                <h2>Spending Analysis</h2>
-                <p>Total Transactions: ${data.analysis.transaction_count}</p>
-                <p>Total Reward Points: ${data.analysis.total_points}</p>
-                <p>Domestic Spend: ₹${data.analysis.domestic_spend.toLocaleString()}</p>
-                <p>International Spend: ₹${data.analysis.international_spend.toLocaleString()}</p>
+                <div class="summary">
+                    <h2>Spending Summary</h2>
+                    <p>Total Transactions: ${data.analysis.transaction_count}</p>
+                    <p>Total Reward Points: ${data.analysis.total_points}</p>
+                    <p>Domestic Spend: ₹${data.analysis.domestic_spend.toLocaleString('en-IN', {maximumFractionDigits: 2})}</p>
+                    <p>International Spend: ₹${data.analysis.international_spend.toLocaleString('en-IN', {maximumFractionDigits: 2})}</p>
+                </div>
                 
-                <h3>Category-wise Spending</h3>
+                <h2>Category-wise Spending</h2>
             `;
             
             for (const [category, stats] of Object.entries(data.analysis.category_spending)) {
                 analysisHTML += `
                     <div class="category">
-                        <h4>${category}</h4>
-                        <p>Total Spent: ₹${stats.total.toLocaleString()}</p>
+                        <h3>${category}</h3>
+                        <p>Total Spent: ₹${stats.total.toLocaleString('en-IN', {maximumFractionDigits: 2})}</p>
                         <p>Number of Transactions: ${stats.count}</p>
-                        <p>Average Transaction: ₹${stats.average.toLocaleString()}</p>
+                        <p>Average Transaction: ₹${stats.average.toLocaleString('en-IN', {maximumFractionDigits: 2})}</p>
                     </div>
                 `;
             }
